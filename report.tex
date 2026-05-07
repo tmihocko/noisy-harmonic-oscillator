@@ -1,0 +1,477 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage[left=2cm, right=2cm]{geometry}
+\usepackage{titlesec}
+\usepackage{svg}
+
+\title{\vspace{-3cm}Simulation of the Noisy Harmonic Oscillator:\\
+Gaussian and L\'{e}vy White Noise Forcing}
+\author{Tristan Mihocko}
+\date{May 2026}
+
+\titlespacing{\subsection}{2em}{3.25ex}{1.5ex}
+
+\begin{document}
+
+\maketitle
+
+\section*{Abstract}
+The harmonic oscillator is one of the most fundamental models in applied
+mathematics, describing physical systems from mechanical springs and electrical
+circuits to molecular vibrations. In idealized settings the system evolves
+deterministically, but in practice external forces are often random: thermal
+fluctuations, turbulent flow, or unpredictable impulses perturb the trajectory
+continuously. Replacing the deterministic forcing with white noise converts
+the governing ordinary differential equation into a stochastic differential
+equation (SDE), whose solutions are random processes rather than fixed curves.
+
+This project presents an interactive simulation of the noisy harmonic oscillator
+driven by either Gaussian white noise or L\'{e}vy stable white noise. The
+simulation numerically integrates the SDE using the Euler--Maruyama method and
+produces two plots: the displacement time series $x(t)$ and the phase portrait
+in the $(x, v)$ plane. Both plots update in real time through interactive
+\texttt{matplotlib} sliders, allowing the user to explore how the physical
+parameters and the character of the noise shape the system's behavior. The
+tool also compares the qualitatively different trajectories produced by Gaussian
+and L\'{e}vy noise, illustrating the role of the stability index $\alpha$ in
+generating heavy-tailed, jump-dominated dynamics.
+
+\section{Mathematical Background}
+
+This section develops the mathematical framework underlying the simulation,
+beginning with the classical oscillator and building up to the stochastic
+setting and the two noise models.
+
+\subsection{The Classical Damped Harmonic Oscillator}
+
+The damped harmonic oscillator is governed by the second-order linear ODE:
+
+\begin{equation}
+    m\,x''(t) + c\,x'(t) + k\,x(t) = 0
+    \label{eq:ode}
+\end{equation}
+
+where $x(t)$ is the displacement from equilibrium, $m > 0$ is the mass,
+$c\ge0$ is the damping coefficient, and $k>0$ is the spring constant.
+Two derived values characterize the system's behavior: the natural frequency at which the undamped system oscillates \eqref{eq:frequency}, and the critical damping value \eqref{eq:damping}, which separates oscillatory from non-oscillatory behavior. 
+
+\begin{equation}
+    \omega_0 = \sqrt{k/m} 
+    \label{eq:frequency}
+\end{equation}
+
+\begin{equation}
+    c_{\text{crit}} = 2\sqrt{km}
+    \label{eq:damping}
+\end{equation}
+
+    
+The qualitative character of the solution depends on the ratio
+$\zeta = c / c_{\text{crit}}$:
+
+\begin{itemize}
+    \item \textbf{Underdamped} ($c < c_{\text{crit}}$): the system oscillates
+          at frequency $\omega_d = \omega_0\sqrt{1-\zeta^2}$ with amplitude
+          decaying as $e^{-\zeta\omega_0 t}$. In the phase portrait this
+          appears as an inward spiral converging to the origin.
+    \item \textbf{Critically damped} ($c = c_{\text{crit}}$): the system
+          returns to equilibrium as quickly as possible without oscillating.
+          The phase portrait shows a trajectory curving directly into the origin.
+    \item \textbf{Overdamped} ($c > c_{\text{crit}}$): the system returns to
+          equilibrium slowly without oscillating, as a sum of two decaying
+          exponentials. The phase portrait shows a trajectory that approaches
+          the origin along a nearly straight path.
+\end{itemize}
+
+\subsection{The Phase Portrait}
+
+The phase portrait is a plot of the velocity $v(t) = x'(t)$ and the displacement $x(t)$, tracing the trajectory of the system in the two-dimensional space $(x, v)$. Rather than showing how $x$ or $v$ evolve over time individually, the phase portrait shows the relationship between 
+position and velocity across the entire trajectory, making it easier for the human eye to notice qualitative features.
+
+For the unforced damped harmonic oscillator, the phase portrait is a smooth spiral
+(underdamped) or a curve approaching the origin (overdamped or critically
+damped). Adding noise disrupts this smooth structure: the trajectory wanders
+randomly through the $(x, v)$ plane, tracing an irregular, space-filling
+curve rather than a clean spiral. Under L\'{e}vy noise, sudden large
+increments in $v$ produce sharp, nearly vertical, jumps in the phase portrait,
+which are very distinct from the gradual drift seen under Gaussian noise.
+
+\subsection{Stochastic Processes}
+
+A stochastic process is a collection of random variables $\{X_t\}_{t\ge0}$ indexed by time, representing a probability distribution over infinitely many possible trajectories called \textit{sample paths}. A single run of the simulation produces one such path. Re-running the simulation with the same parameters produces a different path with the same statistical properties. The randomness is not a numerical error; it is a core feature of the model.
+
+\subsection{Stochastic Differential Equations}
+
+While an ODE describes a system whose future state is completely determined by
+its current state via deterministic rules, an SDE introduces randomness
+directly into those rules by adding a noise term which is a stochastic process. 
+Consequently, the solution of an SDE is not a single curve but a stochastic
+process.
+
+To add stochastic forcing to the classic damped harmonic oscillator \eqref{eq:ode}, we replace the right-hand side with a white noise term $F(t)$:
+
+\begin{equation}
+    m\,x''(t) + c\,x'(t) + k\,x(t) = F(t)
+    \label{eq:sde}
+\end{equation}
+
+Introducing the velocity $v(t) = x'(t)$ reduces this to a first-order system,
+which is the standard form for numerical integration:
+
+\begin{align}
+    dx &= v\,dt \label{eq:sys1} \\
+    dv &= \left(-\frac{c}{m}\,v - \frac{k}{m}\,x\right)dt
+          + \frac{1}{m}\,dW_t \label{eq:sys2}
+\end{align}
+
+where $dW_t$ is the differential noise increment over the time step $dt$.
+Its distribution depends on the chosen noise model.
+
+\subsection{Gaussian White Noise}
+
+The standard model of continuous random forcing is the Wiener process
+(Brownian motion) $W_t$. Its increments $dW_t = W_{t+dt} - W_t$ are:
+
+\begin{itemize}
+    \item independent for non-overlapping time intervals,
+    \item normally distributed: $dW_t \sim \mathcal{N}(0,\, \sigma^2 dt)$,
+    \item continuous almost surely.
+\end{itemize}
+
+The parameter $\sigma > 0$ is the noise scale. Because the variance of each
+increment is proportional to $dt$, the typical magnitude of a fluctuation
+over a small step scales like $\sigma\sqrt{dt}$, which is much larger than
+the drift contribution, which scales linearly with $dt$, for small $\Delta t$. This is what causes the famous roughness of Brownian paths.
+The resulting SDE is treated in the framework of It\^{o} calculus, with It\^{o}'s lemma providing the fundamental rules for differentiation and analysis of stochastic processes.
+
+\subsection{L\'{e}vy Stable White Noise}
+
+A more general family of noise processes is built from the L\'{e}vy stable
+distributions. A random variable $X$ follows the stable distribution
+$S(\alpha, \beta, \sigma, \mu)$ characterized by four parameters:
+
+\begin{itemize}
+    \item $\alpha \in (0, 2]$: the \textbf{stability index}. Controls how
+        heavy the tails of the distribution are. When $\alpha = 2$ the
+        distribution is exactly Gaussian. When $\alpha < 2$ the tails of the distribution satisfy $f(x) \sim |x|^{-(\alpha+1)}$, meaning the distribution
+        has infinite variance and the noise can produce arbitrarily large
+        increments with a non-negligible probability.
+    \item $\beta \in [-1, 1]$: the \textbf{skewness parameter}. When $\beta = 0$
+        the distribution is symmetric. When $\beta = 1$ it is completely
+        right-skewed and when $\beta = -1$ completely left-skewed.
+    \item $\sigma > 0$: the \textbf{scale parameter}, controlling the spread
+        of the distribution.
+    \item $\mu \in \mathbb{R}$: the \textbf{location parameter} shifts the distribution along the real line. It is standard practice to set $\mu = 0$, centering noise about the origin.
+\end{itemize}
+
+L\'{e}vy stable distributions are defined through their characteristic function
+rather than a closed-form density.
+
+\begin{equation}
+    \log \mathbb{E}\!\left[e^{itX}\right] =
+    -\sigma^\alpha |t|^\alpha
+    \!\left(1 - i\beta\,\mathrm{sgn}(t)\Phi(\alpha, t)\right)
+    + i\mu t
+    \label{eq:levy_stable}
+\end{equation}
+
+\begin{equation}
+    \Phi(\alpha, t) = \begin{cases}
+        \tan \left(\frac{\pi\alpha}{2}\right) & \text{if } \alpha \ne 1 \\
+        -\frac{2}{\pi}\ln|t| & \text{if } \alpha = 1
+    \end{cases}
+\end{equation}
+
+The L\'{e}vy stable noise increment over a step $\Delta t$ is drawn from:
+
+\begin{equation}
+    \Delta W \sim S\!\left(\alpha,\, \beta,\,
+    \sigma\,\Delta t^{1/\alpha},\, 0\right)
+\end{equation}
+
+The $\Delta t^{1/\alpha}$ scaling is the natural generalization of the
+$\sqrt{\Delta t} = \Delta t^{1/2}$ scaling of Gaussian increments, recovering
+the Gaussian case when $\alpha = 2$.
+For $\alpha < 2$ the distribution has heavier tails than the Gaussian, producing
+occasional large jumps in $x(t)$ and sharp excursions in the phase portrait.
+This makes L\'{e}vy noise a natural model for systems subject to rare but
+extreme shocks.
+
+\section{Numerical Method}
+
+\subsection{The Euler--Maruyama Scheme}
+
+The Euler--Maruyama method is the SDE analog of the famous Euler
+method for ODEs. Applied to the system \eqref{eq:sys1}--\eqref{eq:sys2}
+with time step $\Delta t$, it gives the update:
+
+\begin{align}
+    x_{i+1} &= x_i + v_i\,\Delta t \label{eq:em1} \\
+    v_{i+1} &= v_i
+              + \left(-\frac{c}{m}\,v_i - \frac{k}{m}\,x_i\right)\!\Delta t
+              + \frac{\Delta W_i}{m} \label{eq:em2}
+\end{align}
+
+where $\Delta W_i$ is a single random draw from the noise distribution.
+For Gaussian noise, $\Delta W_i \sim \mathcal{N}(0, \sigma^2\Delta t)$.
+For L\'{e}vy noise,
+$\Delta W_i \sim S(\alpha, \beta, \sigma\,\Delta t^{1/\alpha}, 0)$.
+
+Equation \eqref{eq:em1} advances the position using the current velocity,
+and equation \eqref{eq:em2} advances the velocity using the current
+deterministic drift plus a random noise kick. The key difference from the
+ODE Euler method is the $\Delta W_i$ term, which injects randomness
+at every step.
+
+\subsection{Convergence}
+
+For SDEs driven by Wiener processes, the Euler--Maruyama method has strong
+convergence of order $1/2$: the expected absolute error
+$\mathbb{E}[|x(T) - x_N|]$ scales as $O(\sqrt{\Delta t})$.
+This is slower than the $O(\Delta t)$ convergence of forward Euler for ODEs,
+a consequence of the nowhere-differentiability of Brownian paths.
+For L\'{e}vy-driven SDEs with $\alpha < 2$ the convergence theory is more
+involved due to the infinite variance of the increments; in practice the
+step size $\Delta t = 0.01$ produces visually stable trajectories for the
+parameter ranges used here.
+
+\subsection{Numerical Parameters}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lll}
+        \hline
+        \textbf{Parameter}    & \textbf{Symbol}  & \textbf{Value} \\
+        \hline
+        Mass                  & $m$              & $1.0$ kg \\
+        Time step             & $\Delta t$       & $0.01$ s \\
+        Total time            & $T$              & $40.0$ s \\
+        Number of steps       & $N$              & $4000$ \\
+        Initial displacement  & $x(0)$           & $0.5$ m \\
+        Initial velocity      & $v(0)$           & $0.0$ m/s \\
+        \hline
+    \end{tabular}
+    \caption{Fixed numerical parameters used in all simulations.}
+    \label{tab:num_params}
+\end{table}
+
+\section{Implementation}
+
+The simulation is implemented in Python using \texttt{numpy},
+\texttt{scipy}, and \texttt{matplotlib}.
+
+\subsection{Noise Sampling}
+
+At each time step a noise increment is drawn from the selected distribution.
+For Gaussian noise, \texttt{numpy.random.normal(0, sigma * sqrt(dt))} is used.
+For L\'{e}vy stable noise, \texttt{scipy.stats.levy\_stable.rvs} is called
+with the user-specified $\alpha$ and $\beta$ and scale $\sigma\,\Delta t^{1/\alpha}$.
+
+\subsection{Visualization}
+
+The figure contains two panels that update together whenever any parameter is changed.
+
+\textbf{Left panel --- displacement $x(t)$:} plots the displacement against time
+over the full $40$ s simulation window. This shows the oscillatory structure of
+the trajectory, the effect of damping on amplitude, and the character of the noise
+(smooth fluctuations for Gaussian, intermittent jumps for L\'{e}vy).
+
+\textbf{Right panel --- phase portrait:} plots the velocity $v(t)$ against the
+displacement $x(t)$ as a parametric curve, tracing the system's trajectory. For the unforced underdamped oscillator this is a smooth inward spiral. Adding noise disrupts this into an irregular, wandering curve. The white
+marker indicates the starting point $(x(0), v(0)) = (0.5, 0)$.
+
+\subsection{Interactive Controls}
+
+Five \texttt{Slider} widgets allow real-time adjustment of the simulation
+parameters:
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{llll}
+        \hline
+        \textbf{Slider} & \textbf{Parameter} & \textbf{Range} & \textbf{Default} \\
+        \hline
+        Damping $c$           & Damping coefficient & $[0.01,\;3.0]$  & $0.20$ \\
+        Spring $k$            & Spring constant     & $[0.50,\;12.0]$ & $4.00$ \\
+        Noise scale $\sigma$  & Noise intensity     & $[0.01,\;2.0]$  & $0.30$ \\
+        L\'{e}vy $\alpha$     & Stability index     & $[0.50,\;2.0]$  & $1.50$ \\
+        L\'{e}vy $\beta$      & Skewness            & $[-1.0,\;1.0]$  & $0.00$ \\
+        \hline
+    \end{tabular}
+    \caption{Interactive sliders, their parameters, ranges, and default values.}
+    \label{tab:sliders}
+\end{table}
+
+A \texttt{RadioButtons} widget switches between L\'{e}vy stable and Gaussian
+noise.
+A \textbf{Re-run} button generates a new noise path at the current
+parameter values.
+A text panel below the controls displays the natural frequency $f_0$,
+critical damping $c_{\text{crit}}$, and current damping regime, updating
+automatically as the sliders are moved.
+
+\section{Results}
+
+\subsection{Unforced System ($\sigma \approx 0$)}
+
+Setting the noise scale near zero yields approximately deterministic behavior.
+With $c = 0.2$ and $k = 4.0$ (underdamped, $c_{\text{crit}} = 4.0$), the
+$x(t)$ plot shows an oscillation at $f_0 \approx 0.318$ Hz whose
+amplitude decays exponentially.
+The phase portrait traces a clean inward spiral converging to the origin.
+Increasing $c$ past $c_{\text{crit}}$ eliminates the oscillation: $x(t)$
+decreases monotonically and the phase portrait shows a curve approaching
+the origin along an almost straight path.
+
+\begin{figure}[H]
+    \centering
+        \begin{minipage}{0.48\textwidth}
+        \centering
+        \includesvg[width=\textwidth]{levy_displacement_unforced.svg}
+        \caption{Displacement of oscillator under L\'evy noise with noise scale $\sigma\approx 0$}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includesvg[width=\textwidth]{levy_phase_unforced.svg}
+        \caption{Phase portrait of oscillator under L\'evy noise with noise scale $\sigma\approx 0$}
+    \end{minipage}
+\end{figure}
+
+\subsection{Gaussian Noise}
+
+Under Gaussian forcing with $\sigma = 0.3$, the $x(t)$ plot shows sustained
+oscillations near $\omega_0$ coupled with small random perturbations.
+The amplitude no longer decays to zero. Instead, the noise continuously
+re-excites the oscillator. In the phase portrait the clean spiral is replaced
+by a fuzzy, irregular band tracing approximately the same elliptical region,
+centered on the origin. Increasing $\sigma$ widens this band; increasing $c$
+shrinks it by suppressing the oscillations.
+Different noise realizations at the same parameter values look broadly similar,
+reflecting the finite variance of the Gaussian distribution.
+
+\begin{figure}[H]
+    \centering
+        \begin{minipage}{0.48\textwidth}
+        \centering
+        \includesvg[width=\textwidth]{gaussian_displacement.svg}
+        \caption{Displacement of oscillator under Gaussian noise}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includesvg[width=\textwidth]{gaussian_phase.svg}
+        \caption{Phase portrait of oscillator under Gaussian noise}
+    \end{minipage}
+\end{figure}
+
+
+\subsection{L\'{e}vy Noise}
+
+Switching to L\'{e}vy stable noise with $\alpha = 1.5$, $\beta = 0$, and
+$\sigma = 0.3$ produces qualitatively different behavior in both plots.
+The $x(t)$ time series is punctuated by intermittent large-amplitude jumps
+entirely absent under Gaussian noise, where the displacement suddenly shifts
+to a value far from its current level before the oscillator gradually rings
+back. In the phase portrait, these events appear as sudden near-vertical
+excursions in the $v$ direction, representing instantaneous large velocity
+kicks, followed by curved segments as the system oscillates back.
+
+\begin{figure}[H]
+    \centering
+        \begin{minipage}{0.48\textwidth}
+        \centering
+        \includesvg[width=\textwidth]{levy_displacement.svg}
+        \caption{Displacement of oscillator under L\'evy noise}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includesvg[width=\textwidth]{levy_phase.svg}
+        \caption{Phase portrait of oscillator under L\'evy noise}
+    \end{minipage}
+\end{figure}
+
+Reducing $\alpha$ toward $0.5$ increases both the frequency and magnitude of
+jumps. At $\alpha = 1.0$ the trajectory is dominated by jump events and the
+underlying oscillatory structure is barely visible between them. The skewness
+$\beta$ controls the direction of the jumps: at $\beta = 1$ the jumps
+are predominantly in the positive $x$ direction, which is visible in the
+phase portrait as asymmetric excursions above and to the right of the origin.
+
+\subsection{Comparison of Noise Models}
+
+The most direct way to compare the models is to switch between them using
+the radio buttons at identical parameter values. The key qualitative
+differences are summarized in the table below.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lll}
+        \hline
+        \textbf{Feature} & \textbf{Gaussian ($\alpha=2$)} & \textbf{L\'{e}vy ($\alpha < 2$)} \\
+        \hline
+        Increment distribution & Finite variance & Infinite variance \\
+        Trajectory character   & Smooth, small fluctuations & Intermittent large jumps \\
+        Phase portrait         & Fuzzy band / irregular spiral & Spiral with sharp excursions \\
+        Path variability & Low (paths look similar) & High (jumps vary between runs) \\
+        \hline
+    \end{tabular}
+    \caption{Qualitative comparison of Gaussian and L\'{e}vy noise models.}
+    \label{tab:comparison}
+\end{table}
+
+In both cases the oscillator continues to respond predominantly near the
+natural frequency $\omega_0 = \sqrt{k/m}$ between noise events, demonstrating
+that the characteristic response of the system is ignorant of the tail behavior of
+the noise.
+
+\section{Discussion}
+
+\subsection{Strengths of the Tool}
+
+The simulation effectively illustrates the mathematical distinction between
+Gaussian and L\'{e}vy white noise.
+A user can slide $\alpha$ continuously from $2.0$ downward and watch the
+trajectory transform from smooth random oscillation to jump-dominated behavior,
+making the role of the stability index immediately apparent.
+The two-panel layout is particularly useful because the $x(t)$ plot and the
+phase portrait highlight complementary aspects of the same trajectory:
+the time series shows when jumps occur, while the phase portrait shows the
+direction and magnitude of the resulting excursions.
+Together they give a more complete picture of the system's behavior than
+either plot alone.
+
+The Re-run button adds interactivity that a static figure cannot provide.
+Because the solution is stochastic, pressing Re-run at fixed parameters
+shows a different realization each time, allowing the user to build intuition
+about variability: under Gaussian noise successive runs look nearly identical,
+while under L\'{e}vy noise the number, timing, and size of jumps can differ
+substantially from run to run.
+
+\subsection{Limitations}
+
+\textbf{Numerical stability at small $\alpha$.} The Euler--Maruyama method
+can produce unreliable results when individual noise increments are very large
+relative to the current state, which occurs frequently at small $\alpha$ and
+large $\sigma$. In these regimes the velocity update adds an increment that
+can dwarf the drift term, occasionally causing the trajectory to diverge in
+a single step. A smaller time step or an implicit stochastic integrator
+would improve robustness in these extreme parameter regimes.
+
+\textbf{Single realization.} The tool only displays one sample path at a time.
+Some useful statistics such as the mean displacement
+$\mathbb{E}[x(t)]$, the variance $\mathrm{Var}(x(t))$, or the marginal
+distribution of $x$ require averaging over many realizations, which a single path cannot show.
+
+\textbf{Scope.} The simulation is limited to a linear oscillator with scalar
+additive noise. Extensions would include nonlinear restoring forces
+(Van der Pol or Duffing oscillator), multiplicative noise where the noise
+amplitude depends on the state, or the display of additional diagnostics
+such as the power spectral density, which would reveal the peak at the
+natural frequency $f_0$ directly.
+
+\end{document}
