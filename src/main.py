@@ -150,16 +150,16 @@ def build_widget_panel(fig):
 	fig.text(RX + RW / 2, 0.875, "Physical parameters", ha="center", color=TICK_COL, fontsize=7)
 	fig.text(RX + RW / 2, 0.685, "Noise parameters", ha="center", color=TICK_COL, fontsize=7)
 
-	sl_c = make_slider(fig, [RX, 0.82, RW, RH], "damping  c", 0.01, 3.0, DEF_C)
-	sl_k = make_slider(fig, [RX, 0.75, RW, RH], "spring   k",  0.50, 12.0, DEF_K)
+	sl_c = make_slider(fig, [RX, 0.82, RW, RH], r"damping  $c$", 0.01, 3.0, DEF_C)
+	sl_k = make_slider(fig, [RX, 0.75, RW, RH], r"spring   $k$",  0.50, 12.0, DEF_K)
 	sl_scale = make_slider(fig, [RX, 0.64, RW, RH], "noise scale", 0.01, 2.0, DEF_SCALE)
-	sl_alpha = make_slider(fig, [RX, 0.57, RW, RH], "Levy  alpha", 0.50, 2.0, DEF_ALPHA)
-	sl_beta = make_slider(fig, [RX, 0.50, RW, RH], "Levy  beta", -1.0, 1.0, DEF_BETA)
+	sl_alpha = make_slider(fig, [RX, 0.57, RW, RH], r"Levy  $\alpha$", 0.50, 2.0, DEF_ALPHA)
+	sl_beta = make_slider(fig, [RX, 0.50, RW, RH], r"Levy  $\beta$", -1.0, 1.0, DEF_BETA)
 
 	# Radio buttons to switch between Levy and Gaussian noise
 	ax_radio = fig.add_axes([RX + 0.02, 0.36, RW - 0.04, 0.10], facecolor=PANEL)
 	ax_radio.set_title("Noise type", color=TEXT_COL, fontsize=8, pad=3)
-	radio = RadioButtons(ax_radio, ("Levy stable", "Gaussian  (alpha=2, beta=0)"), activecolor=SL_COL)
+	radio = RadioButtons(ax_radio, ["Levy stable", r"Gaussian ($\alpha=2$, $\beta=0$)"], activecolor=SL_COL)
 	for lbl in radio.labels:
 		lbl.set_color(TEXT_COL)
 		lbl.set_fontsize(8)
@@ -174,7 +174,11 @@ def build_widget_panel(fig):
 	f0_init, c_crit_init, regime_init = compute_physical_quantities(DEF_C, DEF_K)
 	info_text = fig.text(
 		RX, 0.21,
-		f"f0 ~ {f0_init:.3f} Hz  |  c_crit ~ {c_crit_init:.3f}  |  Regime: {regime_init}",
+		rf"$f_0 \approx {f0_init:.3f}\,\mathrm{{Hz}}"
+		rf"\quad|\quad"
+		rf"c_{{\mathrm{{crit}}}} \approx {c_crit_init:.3f}"
+		rf"\quad|\quad"
+		rf"\mathrm{{Regime:}}\ \mathrm{{{regime_init}}}$",
 		color=TICK_COL, fontsize=7.5, va="top", fontfamily="monospace"
 	)
 
@@ -207,8 +211,14 @@ def update_plots(line_x, line_pp, start_dot, ax_x, ax_pp, x, v):
 # Refreshes the info text below the sliders with current f0, c_crit, and regime.
 def update_info_text(info_text, c, k):
 	f0, c_crit, regime = compute_physical_quantities(c, k)
+	# info_text.set_text(
+		# rf"f0 ~ {f0:.3f} Hz  |  c_crit ~ {c_crit:.3f}  |  Regime: {regime}"
 	info_text.set_text(
-		f"f0 ~ {f0:.3f} Hz  |  c_crit ~ {c_crit:.3f}  |  Regime: {regime}"
+		rf"$f_0 \approx {f0:.3f}\,\mathrm{{Hz}}"
+		rf"\quad|\quad"
+		rf"c_{{\mathrm{{crit}}}} \approx {c_crit:.3f}"
+		rf"\quad|\quad"
+		rf"\mathrm{{Regime:}}\ \mathrm{{{regime}}}$"
 	)
 
 def main():
