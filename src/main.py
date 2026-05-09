@@ -211,8 +211,6 @@ def update_plots(line_x, line_pp, start_dot, ax_x, ax_pp, x, v):
 # Refreshes the info text below the sliders with current f0, c_crit, and regime.
 def update_info_text(info_text, c, k):
 	f0, c_crit, regime = compute_physical_quantities(c, k)
-	# info_text.set_text(
-		# rf"f0 ~ {f0:.3f} Hz  |  c_crit ~ {c_crit:.3f}  |  Regime: {regime}"
 	info_text.set_text(
 		rf"$f_0 \approx {f0:.3f}\,\mathrm{{Hz}}"
 		rf"\quad|\quad"
@@ -229,7 +227,7 @@ def main():
 
 	sliders, radio, btn, info_text = build_widget_panel(fig)
 
-	# Dict so the nested refresh() callback can modify noise_state in place
+	# Dict so the nested refresh() callback can modify noise_state
 	noise_state = {"type": "levy"}
 
 	# Connected to every slider and the Re-run button.
