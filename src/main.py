@@ -13,7 +13,7 @@ N = int(T_END / DT)
 T_GRID = np.linspace(0, T_END, N) # time array used for x(t) plot x-axis
 
 # Default slider values shown on startup
-DEF_C = 0.20 # damping coefficient c  [kg/s]
+DEF_C = 0.20 # damping coefficient c [kg/s]
 DEF_K = 4.00 # spring constant k
 DEF_SCALE = 0.30 # noise intensity sigma
 DEF_ALPHA = 1.50 # Levy stability index (alpha=2 is Gaussian)
@@ -30,9 +30,9 @@ C_X = "#58a6ff" # x(t) line colour
 C_PP = "#f78166" # phase portrait line colour
 
 # Advances the oscillator one step using Euler-Maruyama:
-#   x_{i+1} = x_i + v_i * dt
-#   v_{i+1} = v_i + drift * dt + dW/m
-# where drift = -(c/m)*v - (k/m)*x  (spring force + damping)
+#	x_{i+1} = x_i + v_i * dt
+#	v_{i+1} = v_i + drift * dt + dW/m
+# where drift = -(c/m)*v - (k/m)*x (spring force + damping)
 def euler_maruyama_step(x_i, v_i, c, k, dt, dW):
 	# drift = a = F/M = (-cv - kx)/m
 	drift  = -(c / MASS) * v_i - (k / MASS) * x_i
@@ -48,12 +48,12 @@ def simulate(c, k, alpha, beta, scale, noise_type="levy"):
 	x = np.zeros(N)
 	v = np.zeros(N)
 	x[0] = 0.5
-	v[0] = 0.0  
+	v[0] = 0.0
 
 	if noise_type == "gaussian":
 		noise_arr = np.random.normal(0, scale * np.sqrt(DT), N)
 	elif noise_type == "levy":
-		noise_arr = levy_stable.rvs(alpha, beta, scale=scale * DT**(1/alpha), size=N)		  
+		noise_arr = levy_stable.rvs(alpha, beta, scale=scale * DT**(1/alpha), size=N)
 
 	for i in range(N - 1):		
 		x[i + 1], v[i + 1] = euler_maruyama_step(x[i], v[i], c, k, DT, noise_arr[i])
@@ -62,9 +62,9 @@ def simulate(c, k, alpha, beta, scale, noise_type="levy"):
 
 
 # Computes three quantities shown in the info panel:
-#   f0  natural frequency in Hz: sqrt(k/m) / (2*pi)
-#   c_crit: critical damping:  2 * sqrt(k*m)
-#   regime: whether the system is underdamped, overdamped, or critical
+#	f0: natural frequency in Hz: sqrt(k/m) / (2*pi)
+#	c_crit: critical damping: 2 * sqrt(k*m)
+#	regime: whether the system is underdamped, overdamped, or critical
 def compute_physical_quantities(c, k):
 	f0 = np.sqrt(k / MASS) / (2 * np.pi)
 	c_crit = 2.0 * np.sqrt(k * MASS)
@@ -95,10 +95,10 @@ def build_figure():
 	fig.suptitle("Noisy Harmonic Oscillator", color=TEXT_COL, fontsize=14, fontweight="bold", y=0.98)
 
 	# GridSpec positions the two plot panels in the left 70% of the figure
-	gs = gridspec.GridSpec(1, 2, left=0.06, right=0.70, top=0.91,  bottom=0.12, wspace=0.30)
+	gs = gridspec.GridSpec(1, 2, left=0.06, right=0.70, top=0.91, bottom=0.12, wspace=0.30)
 
-	ax_x = fig.add_subplot(gs[0, 0])   # x(t) panel
-	ax_pp = fig.add_subplot(gs[0, 1])   # phase portrait panel
+	ax_x = fig.add_subplot(gs[0, 0]) # x(t) panel
+	ax_pp = fig.add_subplot(gs[0, 1]) # phase portrait panel
 
 	apply_axis_style(ax_x)
 	apply_axis_style(ax_pp)
@@ -118,7 +118,7 @@ def build_figure():
 # Returns the line objects so they can be updated in-place later
 # without rebuilding the figure from scratch.
 def draw_initial_plots(fig, ax_x, ax_pp, x, v):
-	(line_x,)  = ax_x.plot(T_GRID, x, color=C_X,  lw=0.9)
+	(line_x,) = ax_x.plot(T_GRID, x, color=C_X, lw=0.9)
 	(line_pp,) = ax_pp.plot(x, v, color=C_PP, lw=0.5, alpha=0.85)
 
 	# White dot marks where the trajectory starts on the phase portrait
@@ -131,7 +131,7 @@ def draw_initial_plots(fig, ax_x, ax_pp, x, v):
 # Helper that creates a single styled slider at the given figure position.
 # rect = [left, bottom, width, height] in figure coordinates (0 to 1).
 def make_slider(fig, rect, label, vmin, vmax, vinit, valfmt="%.2f"):
-	ax_s   = fig.add_axes(rect, facecolor=SL_BG)
+	ax_s = fig.add_axes(rect, facecolor=SL_BG)
 	slider = Slider(ax_s, label, vmin, vmax, valinit=vinit, valfmt=valfmt, color=SL_COL)
 	slider.label.set_color(TEXT_COL)
 	slider.label.set_fontsize(8)
@@ -143,18 +143,18 @@ def make_slider(fig, rect, label, vmin, vmax, vinit, valfmt="%.2f"):
 # noise-type radio buttons, Re-run button, and the info text annotation.
 # Returns everything main() needs to wire up the callbacks.
 def build_widget_panel(fig):
-	RX = 0.73   # left edge of widget column in figure coordinates
-	RW = 0.22   # slider width
-	RH = 0.03   # slider height
+	RX = 0.73 # left edge of widget column in figure coordinates
+	RW = 0.22 # slider width
+	RH = 0.03 # slider height
 
 	fig.text(RX + RW / 2, 0.875, "Physical parameters", ha="center", color=TICK_COL, fontsize=7)
 	fig.text(RX + RW / 2, 0.685, "Noise parameters", ha="center", color=TICK_COL, fontsize=7)
 
-	sl_c = make_slider(fig, [RX, 0.82, RW, RH], "damping  c",  0.01,  3.0, DEF_C)
+	sl_c = make_slider(fig, [RX, 0.82, RW, RH], "damping  c", 0.01, 3.0, DEF_C)
 	sl_k = make_slider(fig, [RX, 0.75, RW, RH], "spring   k",  0.50, 12.0, DEF_K)
-	sl_scale = make_slider(fig, [RX, 0.64, RW, RH], "noise scale", 0.01,  2.0, DEF_SCALE)
-	sl_alpha = make_slider(fig, [RX, 0.57, RW, RH], "Levy  alpha", 0.50,  2.0, DEF_ALPHA)
-	sl_beta  = make_slider(fig, [RX, 0.50, RW, RH], "Levy  beta", -1.0,   1.0, DEF_BETA)
+	sl_scale = make_slider(fig, [RX, 0.64, RW, RH], "noise scale", 0.01, 2.0, DEF_SCALE)
+	sl_alpha = make_slider(fig, [RX, 0.57, RW, RH], "Levy  alpha", 0.50, 2.0, DEF_ALPHA)
+	sl_beta = make_slider(fig, [RX, 0.50, RW, RH], "Levy  beta", -1.0, 1.0, DEF_BETA)
 
 	# Radio buttons to switch between Levy and Gaussian noise
 	ax_radio = fig.add_axes([RX + 0.02, 0.36, RW - 0.04, 0.10], facecolor=PANEL)
@@ -229,7 +229,7 @@ def main():
 		k = sliders["k"].val
 		scale = sliders["scale"].val
 		alpha = sliders["alpha"].val
-		beta  = sliders["beta"].val
+		beta = sliders["beta"].val
 		ntype = noise_state["type"]
 
 		x, v = simulate(c, k, alpha, beta, scale, noise_type=ntype)
